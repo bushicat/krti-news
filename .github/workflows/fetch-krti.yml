@@ -14,11 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download feed
+      - name: Download feed (via SpaceWeb)
+        env:
+          KRTI_KEY: ${{ secrets.KRTI_KEY }}
         run: |
-          curl -sS -L --fail -m 60 \
-            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36" \
-            "https://krti.gov.spb.ru/press/news/rss/" -o raw.xml
+          curl -sS --fail -m 90 \
+            --resolve bushicatgm.temp.swtest.ru:80:77.222.40.198 \
+            "http://bushicatgm.temp.swtest.ru/krti.php?key=${KRTI_KEY}" -o raw.xml
           echo "Размер: $(wc -c < raw.xml) байт"
           head -c 300 raw.xml; echo
 
