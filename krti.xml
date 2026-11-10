@@ -33,7 +33,7 @@ jobs:
           m = re.search(rb'encoding=["\']([\w-]+)', data[:200])
           enc = m.group(1).decode() if m else 'utf-8'
           text = data.decode(enc, errors='replace')
-          if '<item' not in text:
+          if '<rss' not in text or '<channel' not in text:
               sys.exit('Это не RSS — файл не обновлён')
           text = re.sub(r'(<\?xml[^>]*encoding=["\'])[\w-]+', r'\1utf-8', text, count=1)
           open('krti.xml', 'w', encoding='utf-8').write(text)
