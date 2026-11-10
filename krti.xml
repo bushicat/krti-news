@@ -1,0 +1,55 @@
+name: Fetch KRTI news
+
+on:
+  schedule:
+    - cron: '17 * * * *'   # каждый час
+  workflow_dispatch:        # кнопка ручного запуска
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download feed (via SpaceWeb)
+        env:
+          KRTI_KEY: ${{ secrets.KRTI_KEY }}
+        run: |
+          code=$(curl -sS -m 90 -w '%{http_code}' \
+            --resolve bushicatgm.temp.swtest.ru:80:77.222.40.198 \
+            "http://bushicatgm.temp.swtest.ru/krti.php?key=${KRTI_KEY}" -o raw.xml)
+          echo "HTTP: $code, размер: $(wc -c < raw.xml) байт"
+          head -c 500 raw.xml; echo
+          [ "$code" = "200" ] || exit 1
+
+      - name: Convert to UTF-8 and check
+        run: |
+          python3 - <<'EOF'
+          import re, sys
+          data = open('raw.xml', 'rb').read()
+          m = re.search(rb'encoding=["\']([\w-]+)', data[:200])
+          enc = m.group(1).decode() if m else 'utf-8'
+          text = data.decode(enc, errors='replace')
+          if '<item' not in text:
+              sys.exit('Это не RSS — файл не обновлён')
+          text = re.sub(r'(<\?xml[^>]*encoding=["\'])[\w-]+', r'\1utf-8', text, count=1)
+          open('krti.xml', 'w', encoding='utf-8').write(text)
+          print('Новостей:', text.count('<item'))
+          EOF
+          rm raw.xml
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add krti.xml
+          if git diff --cached --quiet; then
+            echo "Без изменений"
+          else
+            git commit -m "Обновление новостей КРТИ"
+            git push
+            curl -sS "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@main/krti.xml" || true
+          fi
