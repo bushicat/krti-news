@@ -19,7 +19,7 @@ jobs:
           KRTI_KEY: ${{ secrets.KRTI_KEY }}
         run: |
           code=$(curl -sS -m 90 -w '%{http_code}' \
-            --resolve bushicatgm.temp.swtest.ru:80:77.222.40.198 \
+            --resolve bushicatgm.temp.swtest.ru:80:77.222.40.70 \
             "http://bushicatgm.temp.swtest.ru/krti.php?key=${KRTI_KEY}" -o raw.xml)
           echo "HTTP: $code, размер: $(wc -c < raw.xml) байт"
           head -c 500 raw.xml; echo
